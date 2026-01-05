@@ -11,9 +11,11 @@ dj-database-url==2.3.0
 drf-yasg==1.21.9
 djangorestframework-simplejwt==5.3.1
 requests==2.32.3
+coreapi
 # Production security
 argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
 # Redis support (as per production.txt)
 django-redis==5.2.0
 redis==5.2.1
+
