@@ -115,6 +115,7 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
     # Debug toolbar (if installed)
+    # Debug toolbar (if installed)
     try:
         import debug_toolbar
         urlpatterns = [
