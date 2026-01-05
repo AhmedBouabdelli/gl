@@ -43,24 +43,4 @@ LOGGING = {
         'level': 'ERROR',
     },
 }
-# In your settings.py or wherever you configure drf-yasg
-SWAGGER_SETTINGS = {
-    'DEFAULT_FIELD_INSPECTORS': [
-        'drf_yasg.inspectors.CamelCaseJSONFilter',
-        'drf_yasg.inspectors.InlineSerializerInspector',
-        'drf_yasg.inspectors.RelatedFieldInspector',
-        'drf_yasg.inspectors.ChoiceFieldInspector',
-        'drf_yasg.inspectors.FileFieldInspector',
-        'drf_yasg.inspectors.DictFieldInspector',
-        'drf_yasg.inspectors.SerializerMethodFieldInspector',
-        'drf_yasg.inspectors.SimpleFieldInspector',
-        'drf_yasg.inspectors.StringDefaultFieldInspector',
-    ],
-    'DEFAULT_INFO': 'your_project.urls.schema_view',  # Adjust this
-}
-
-# Or exclude specific endpoints
-def should_include_endpoint(endpoint):
-    if 'accounts' in endpoint[0] and 'profile' in endpoint[0]:
-        return False
-    return True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
