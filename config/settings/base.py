@@ -1,125 +1,258 @@
 """
-URL configuration for volunteer_platform project.
+Django settings for volunteer_platform project.
 """
-from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-# API Documentation imports
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
+load_dotenv()
 
-# Optional: If you want to use DRF's built-in docs
-try:
-    from rest_framework.documentation import include_docs_urls
-    DRF_DOCS_AVAILABLE = True
-except ImportError:
-    DRF_DOCS_AVAILABLE = False
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Health check endpoint
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from django.utils import timezone
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-in-production')
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def health_check(request):
-    """Health check endpoint for API monitoring"""
-    return Response({
-        "status": "ok",
-        "message": "Volunteer Platform API is running",
-        "timestamp": timezone.now().isoformat(),
-        "version": "1.0.0",
-        "endpoints": {
-            "accounts": "/api/accounts/",
-            "skills": "/api/skills/",
-            "missions": "/api/missions/",
-            "communications": "/api/communications/",
-            "audit": "/api/audit/",
-            "admin": "/admin/",
-            "api_docs": "/swagger/",
-            "api_docs_alt": "/redoc/"
-        }
-    })
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# Swagger/OpenAPI schema configuration
-schema_view = get_schema_view(
-    openapi.Info(
-        title="Volunteer Platform API",
-        default_version='v1.0',
-        description="""
-        # Volunteer Management Platform API
-        
-        ## User Roles & Permissions:
-        - **Admin**: Full system access (manage skills, categories, verify skills)
-        - **Volunteer**: Manage own skills, request verification
-        - **Organization**: Create missions, manage mission skills, search volunteers
-        - **Public**: Read-only access to skills and categories
-        
-        ## Authentication:
-        - Use JWT tokens: `Authorization: Bearer <your_token>`
-        - Get token: `POST /api/accounts/login/`
-        
-        ## Quick Links:
-        - [Skills Module](/api/skills/)
-        - [Accounts Module](/api/accounts/)
-        - [Missions Module](/api/missions/)
-        
-        ## Testing Mode:
-        During development, permissions are set to `AllowAny` for testing.
-        """,
-        terms_of_service="https://www.example.com/terms/",
-        contact=openapi.Contact(email="support@example.com"),
-        license=openapi.License(name="MIT License"),
-    ),
-    public=True,
-    permission_classes=[permissions.AllowAny],
-)
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# URL patterns
-urlpatterns = [
-    # Admin site
-    path('admin/', admin.site.urls),
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
     
-    # API Health Check
-    path('api/health/', health_check, name='health-check'),
+    # Third party apps
+    'rest_framework',
+    'corsheaders',
+    'django_filters',
     
-    # API Documentation
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), 
-         name='schema-swagger-ui'),
-    path('swagger.json', schema_view.without_ui(cache_timeout=0), 
-         name='schema-json'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), 
-         name='schema-redoc'),
-    
-    # Optional: DRF built-in docs (if coreapi is installed)
-    *([path('api/docs/', include_docs_urls(
-        title='API Documentation',
-        permission_classes=[AllowAny]
-    ))] if DRF_DOCS_AVAILABLE else []),
-    
-    # Application URLs
-    path('api/accounts/', include('apps.accounts.urls')),
-    path('api/missions/', include('apps.missions.urls')),
-    path('api/skills/', include('apps.skills.urls')),
-    path('api/communications/', include('apps.communications.urls')),
-    path('api/audit/', include('apps.audit.urls')),
+    # Local apps - TEMPORARILY DISABLED AUDIT FOR TESTING
+    'apps.accounts',
+    'apps.missions',
+    'apps.skills',
+    'apps.communications',
+    # 'apps.audit',  # COMMENTED OUT - ENABLE LATER WHEN NEEDED
+    'apps.core',
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'apps.audit.middleware.AuditMiddleware',  # COMMENTED OUT - ENABLE LATER WHEN NEEDED
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+ADMIN_REGISTRATION_CODE = os.environ.get('ADMIN_REGISTRATION_CODE', 'DEFAULT_SECURE_CODE')
+# Database Configuration
+# Use USE_LOCAL_DB environment variable to switch between local and deployed database
+USE_LOCAL_DB = os.getenv('USE_LOCAL_DB', 'False').lower() == 'true'
+
+
+if USE_LOCAL_DB:
+    # Local database configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('LOCAL_DB_NAME', 'Initiativly'),
+            'USER': os.getenv('LOCAL_DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('LOCAL_DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('LOCAL_DB_HOST', 'localhost'),
+            'PORT': os.getenv('LOCAL_DB_PORT', '5432'),
+            "OPTIONS": {
+            "sslmode": "disable",  
+        },
+        }
+    }
+else:
+    # Deployed/Remote database configuration
+    import dj_database_url
     
-    # Debug toolbar (if installed)
-    # Debug toolbar (if installed)
-    try:
-        import debug_toolbar
-        urlpatterns = [
-            path('__debug__/', include(debug_toolbar.urls)),
-        ] + urlpatterns
-    except ImportError:
-        pass
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+# PASSWORD_HASHERS
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+]
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+    
+    'JTI_CLAIM': 'jti',
+}
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom user model
+AUTH_USER_MODEL = 'accounts.User'
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+        'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'login': '5/minute', \
+    }
+}
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'django.log',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['file'],
+        'level': 'INFO',
+    },
+}
+# In your settings.py or wherever you configure drf-yasg
+SWAGGER_SETTINGS = {
+    'DEFAULT_FIELD_INSPECTORS': [
+        'drf_yasg.inspectors.CamelCaseJSONFilter',
+        'drf_yasg.inspectors.InlineSerializerInspector',
+        'drf_yasg.inspectors.RelatedFieldInspector',
+        'drf_yasg.inspectors.ChoiceFieldInspector',
+        'drf_yasg.inspectors.FileFieldInspector',
+        'drf_yasg.inspectors.DictFieldInspector',
+        'drf_yasg.inspectors.SerializerMethodFieldInspector',
+        'drf_yasg.inspectors.SimpleFieldInspector',
+        'drf_yasg.inspectors.StringDefaultFieldInspector',
+    ],
+    'DEFAULT_INFO': 'config.urls.schema_view',
+}
+
+# Or exclude specific endpoints
+def should_include_endpoint(endpoint):
+    if 'accounts' in endpoint[0] and 'profile' in endpoint[0]:
+        return False
+    return True
